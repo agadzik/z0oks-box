@@ -168,6 +168,64 @@ async function sendWorkspaceStatus(data: WebAgentWorkspaceStatusData) {
   }
 }
 
+function extractApiErrorDetail(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null) {
+    return undefined;
+  }
+
+  const status = (error as { response?: { status?: unknown } }).response
+    ?.status;
+  const json = (error as { json?: unknown }).json;
+  const text = (error as { text?: unknown }).text;
+
+  const apiMessage =
+    typeof json === "object" && json !== null
+      ? ((json as { message?: unknown }).message ??
+        (json as { error?: unknown }).error)
+      : undefined;
+
+  const detail =
+    typeof apiMessage === "string"
+      ? apiMessage
+      : typeof text === "string" && text.length > 0
+        ? text
+        : undefined;
+
+  if (typeof status !== "number" && !detail) {
+    return undefined;
+  }
+
+  if (status === 402) {
+    const hobbyHint =
+      "The Vercel Sandbox API rejected the request (HTTP 402 Payment Required). " +
+      "On the Hobby plan, sandbox timeouts are capped at 45 minutes; the default " +
+      "now respects that cap. Override with VERCEL_SANDBOX_TIMEOUT_MS on Pro/Enterprise.";
+    return detail ? `${hobbyHint} API said: ${detail}` : hobbyHint;
+  }
+
+  if (typeof status === "number") {
+    return detail
+      ? `Vercel Sandbox API responded ${status}: ${detail}`
+      : `Vercel Sandbox API responded ${status}`;
+  }
+
+  return detail;
+}
+
+function enrichSandboxConnectError(error: unknown): unknown {
+  const detail = extractApiErrorDetail(error);
+  if (!detail) {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    error.message = `${error.message} — ${detail}`;
+    return error;
+  }
+
+  return new Error(detail);
+}
+
 async function sendStart(messageId: string) {
   const writer = getWritable<UIMessageChunk>().getWriter();
   try {
@@ -244,6 +302,8 @@ export async function resolveChatSandboxRuntime(params: {
         createIfMissing: true,
       },
     });
+  } catch (error) {
+    throw enrichSandboxConnectError(error);
   } finally {
     if (setupToken) {
       await revokeInstallationToken(setupToken.token);

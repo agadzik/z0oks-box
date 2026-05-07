@@ -6,9 +6,37 @@
 /** SDK safety buffer reserved for sandbox before-stop hooks (30 seconds) */
 const VERCEL_SANDBOX_TIMEOUT_BUFFER_MS = 30 * 1000;
 
-/** Default timeout for new cloud sandboxes (5 hours minus hook buffer) */
+/**
+ * Vercel Sandbox API plan-dependent maximum sandbox lifetime.
+ * - Hobby: 45 minutes (2_700_000 ms). Requesting more returns HTTP 402.
+ * - Pro/Enterprise: 5 hours (18_000_000 ms).
+ *
+ * Default to the Hobby-compatible cap so deployments don't fail with
+ * "Status code 402 is not ok" out of the box. Pro/Enterprise deployments
+ * can opt into the 5-hour cap by setting `VERCEL_SANDBOX_TIMEOUT_MS`.
+ */
+const HOBBY_SANDBOX_MAX_TIMEOUT_MS = 45 * 60 * 1000;
+
+function parseEnvTimeoutMs(): number | undefined {
+  const raw = process.env.VERCEL_SANDBOX_TIMEOUT_MS;
+  if (!raw) {
+    return undefined;
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+  return parsed;
+}
+
+/**
+ * Default timeout for new cloud sandboxes.
+ * Override via `VERCEL_SANDBOX_TIMEOUT_MS` env var (e.g. set to
+ * `17970000` on Pro/Enterprise to use the 5-hour cap).
+ */
 export const DEFAULT_SANDBOX_TIMEOUT_MS =
-  5 * 60 * 60 * 1000 - VERCEL_SANDBOX_TIMEOUT_BUFFER_MS;
+  (parseEnvTimeoutMs() ?? HOBBY_SANDBOX_MAX_TIMEOUT_MS) -
+  VERCEL_SANDBOX_TIMEOUT_BUFFER_MS;
 
 /** Manual extension duration for explicit fallback flows (20 minutes) */
 export const EXTEND_TIMEOUT_DURATION_MS = 20 * 60 * 1000;
