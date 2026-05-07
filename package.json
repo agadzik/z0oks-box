@@ -19,6 +19,7 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "sandbox:snapshot-base": "bun run scripts/vercel-refresh-base-snapshot.ts",
+    "sandbox:snapshot-bootstrap": "bun run scripts/vercel-bootstrap-base-snapshot.ts",
     "typecheck": "turbo typecheck",
     "check": "ultracite check",
     "fix": "ultracite fix",
@@ -27,6 +28,7 @@
     "test:verbose": "bun test --reporter=junit --reporter-outfile /dev/stdout"
   },
   "devDependencies": {
+    "@open-agents/sandbox": "workspace:*",
     "oxfmt": "^0.43.0",
     "oxlint": "1.57.0",
     "turbo": "^2.5.4",

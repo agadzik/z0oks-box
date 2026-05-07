@@ -5,6 +5,7 @@
     "": {
       "name": "open-agents",
       "devDependencies": {
+        "@open-agents/sandbox": "workspace:*",
         "oxfmt": "^0.43.0",
         "oxlint": "1.57.0",
         "turbo": "^2.5.4",

@@ -16,10 +16,19 @@ import {
 import {
   DEFAULT_SANDBOX_BASE_SNAPSHOT_ID,
   DEFAULT_SANDBOX_PORTS,
-  DEFAULT_SANDBOX_TIMEOUT_MS,
 } from "../apps/web/lib/sandbox/config";
+import { formatError } from "./format-error";
+import { loadEnvFile } from "./load-env";
 
 const SANDBOX_BASE_SNAPSHOT_CONFIG_PATH = "apps/web/lib/sandbox/config.ts";
+const ENV_FILE_PATH = "apps/web/.env.local";
+// Vercel Sandbox API rejects timeout > 2_700_000 for non-persistent sandboxes
+// (the kind this script creates). Subtract the 30s beforeStop buffer the SDK
+// adds in `VercelSandbox.create` so the wire value stays under the cap.
+const SANDBOX_API_MAX_TIMEOUT_MS = 2_700_000;
+const SANDBOX_SDK_BUFFER_MS = 30_000;
+const DEFAULT_SANDBOX_TIMEOUT_MS =
+  SANDBOX_API_MAX_TIMEOUT_MS - SANDBOX_SDK_BUFFER_MS;
 
 interface CliOptions {
   baseSnapshotId?: string;
@@ -61,6 +70,13 @@ function requireOptionValue(
   return value;
 }
 
+// Collapse newline-plus-indentation sequences (terminal soft-wraps in pasted
+// commands) into a single space. A bare `\n` is left alone because it's a
+// legitimate shell statement separator.
+function normalizeCommand(command: string): string {
+  return command.replace(/\r?\n[\t ]+/g, " ").trim();
+}
+
 function parsePositiveNumber(value: string, option: string): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -79,6 +95,10 @@ function parseArgs(argv: string[]): CliOptions | HelpResult {
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
 
+    if (arg.trim().length === 0) {
+      continue;
+    }
+
     if (arg === "--help" || arg === "-h") {
       return { help: true };
     }
@@ -90,7 +110,7 @@ function parseArgs(argv: string[]): CliOptions | HelpResult {
     }
 
     if (arg === "--command") {
-      commands.push(requireOptionValue(argv, index, arg));
+      commands.push(normalizeCommand(requireOptionValue(argv, index, arg)));
       index += 1;
       continue;
     }
@@ -131,6 +151,8 @@ async function main() {
     return;
   }
 
+  await loadEnvFile(ENV_FILE_PATH);
+
   const result = await refreshBaseSnapshot({
     baseSnapshotId: parsed.baseSnapshotId ?? DEFAULT_SANDBOX_BASE_SNAPSHOT_ID,
     commands: parsed.commands,
@@ -149,7 +171,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(message);
+  console.error(formatError(error));
   process.exit(1);
 });
