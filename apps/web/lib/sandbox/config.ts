@@ -79,5 +79,7 @@ export const DEFAULT_SANDBOX_BASE_SNAPSHOT_ID =
   // Previous snapshot (bun + jq + agent-browser + chromium): "snap_C8tUFhwRXZky4MaFvTuwO7DH66wx"
   // Previous snapshot (bun + jq + agent-browser + chromium + code-server): "snap_EjsphVxi07bFKrfojljJdIS41KHT"
   // Previous snapshot (bare Vercel image): "snap_EtAZ952zRg1ZqZo4H3sbQGgSL6AI"
-  // Current snapshot (bun + jq + agent-browser + chromium + code-server):
-  "snap_or4T6FHjdJz0jz0ug33iDOio9VYg";
+  // Previous snapshot (bun + jq + agent-browser + chromium + code-server): "snap_or4T6FHjdJz0jz0ug33iDOio9VYg"
+  // Previous snapshot (bare Vercel image, Pro team): "snap_zzUaOhNgOe0IOKu54kO5Yw4vTJIX"
+  // Current snapshot (bun + jq + agent-browser + chromium + code-server, Pro team):
+  "snap_2RMXtpbNggg26OcET16OGlpek0I2";
